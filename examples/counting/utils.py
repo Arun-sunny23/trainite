@@ -112,23 +112,20 @@ def load_grid_configs(path: str | Path, config_cls: type[T]) -> list[T]:
     # Extract and format the grid parameters
     sweep_params = OmegaConf.to_container(sweep_params)
     keys = list(sweep_params.keys())
-    values = [
-        v if isinstance(v, list) else [v] 
-        for v in sweep_params.values()
-    ]
-    
+    values = [v if isinstance(v, list) else [v] for v in sweep_params.values()]
+
     # Generate all combinations
     combinations = list(itertools.product(*values))
-    
+
     # Create and validate a distinct configuration for each combination
     configs = []
     for combo in combinations:
         run_conf = raw_conf.copy()
         for key, val in zip(keys, combo):
             OmegaConf.update(run_conf, key, val)
-            
+
         configs.append(config_cls.model_validate(run_conf))
-        
+
     return configs
 
 
@@ -408,4 +405,3 @@ def setup_console_logger(
         output_transform=lambda output: {"loss": output["loss"].item()},
     )
     return logger
-
