@@ -91,12 +91,7 @@ def test_load_grid_configs_no_sweep(tmp_path):
 def test_load_grid_configs_with_sweep(tmp_path):
     config_file = tmp_path / "config_sweep.yaml"
     config_file.write_text(
-        "lr: 0.01\n"
-        "batch_size: 16\n"
-        "notes: test\n"
-        "sweep:\n"
-        "  lr: [0.01, 0.001]\n"
-        "  batch_size: [16, 64]\n"
+        "lr: 0.01\nbatch_size: 16\nnotes: test\nsweep:\n  lr: [0.01, 0.001]\n  batch_size: [16, 64]\n"
     )
 
     configs = load_grid_configs(config_file, MockSweepConfig)
