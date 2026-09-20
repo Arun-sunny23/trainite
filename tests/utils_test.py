@@ -63,3 +63,49 @@ def test_instantiate_kwargs_override():
     config = cc("builtins.dict", key="value")
     result = instantiate(config, key="override")
     assert result == {"key": "override"}
+
+
+# ==========================================
+# Grid Search Tests
+# ==========================================
+
+from trainite.shared.utils import load_grid_configs
+
+
+class MockSweepConfig(BaseModel):
+    lr: float = 0.001
+    batch_size: int = 32
+    notes: str = "default"
+
+
+def test_load_grid_configs_no_sweep(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text("lr: 0.01\nbatch_size: 16\nnotes: test\n")
+
+    configs = load_grid_configs(config_file, MockSweepConfig)
+    assert len(configs) == 1
+    assert configs[0].lr == 0.01
+    assert configs[0].batch_size == 16
+
+
+def test_load_grid_configs_with_sweep(tmp_path):
+    config_file = tmp_path / "config_sweep.yaml"
+    config_file.write_text(
+        "lr: 0.01\n"
+        "batch_size: 16\n"
+        "notes: test\n"
+        "sweep:\n"
+        "  lr: [0.01, 0.001]\n"
+        "  batch_size: [16, 64]\n"
+    )
+
+    configs = load_grid_configs(config_file, MockSweepConfig)
+    assert len(configs) == 4
+
+    combos = {(c.lr, c.batch_size) for c in configs}
+    assert combos == {
+        (0.01, 16),
+        (0.01, 64),
+        (0.001, 16),
+        (0.001, 64),
+    }
