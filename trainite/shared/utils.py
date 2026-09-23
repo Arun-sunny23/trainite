@@ -135,7 +135,7 @@ def load_config(path: str | Path, config_cls: type[T]) -> T:
     return config_cls.model_validate(raw_conf)
 
 
-def flatten_sweep_config(d: dict, parent_key: str = '', sep: str = '.') -> dict:
+def flatten_sweep_config(d: dict, parent_key: str = "", sep: str = ".") -> dict:
     """
     Flattens a nested dictionary into dot notation.
     Example: {'optimizer': {'lr': [0.01, 0.001]}} -> {'optimizer.lr': [0.01, 0.001]}
@@ -143,7 +143,7 @@ def flatten_sweep_config(d: dict, parent_key: str = '', sep: str = '.') -> dict:
     items = []
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
-        if isinstance(v, dict) or type(v).__name__ == 'DictConfig':
+        if isinstance(v, dict) or type(v).__name__ == "DictConfig":
             items.extend(flatten_sweep_config(v, new_key, sep=sep).items())
         else:
             items.append((new_key, v))
@@ -161,10 +161,10 @@ def load_grid_configs(path: str | Path, config_cls: type[T]) -> list[T]:
 
     # Extract and format the grid parameters
     sweep_params_dict = OmegaConf.to_container(sweep_params, resolve=True)
-    
+
     # TASK 1: Flatten the nested dictionary into dot-notation keys
     flat_sweep_params = flatten_sweep_config(sweep_params_dict)
-    
+
     keys = list(flat_sweep_params.keys())
     values = [v if isinstance(v, list) else [v] for v in flat_sweep_params.values()]
 
@@ -175,7 +175,7 @@ def load_grid_configs(path: str | Path, config_cls: type[T]) -> list[T]:
     configs = []
     for combo in combinations:
         run_conf = raw_conf.copy()
-        
+
         # TASK 3: Remove the sweep block since it is no longer relevant for the individual run
         if "sweep" in run_conf:
             del run_conf["sweep"]
@@ -184,7 +184,7 @@ def load_grid_configs(path: str | Path, config_cls: type[T]) -> list[T]:
             # TASK 2: Validate the key exists in the base config to catch typos
             if OmegaConf.select(run_conf, key) is None:
                 raise KeyError(f"Sweep key '{key}' does not exist in the base configuration.")
-                
+
             OmegaConf.update(run_conf, key, val)
 
         configs.append(config_cls.model_validate(run_conf))

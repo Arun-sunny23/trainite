@@ -13,7 +13,7 @@ def main() -> None:
     args = parser.parse_args()
 
     configs = load_grid_configs(Path(args.config), ProjectConfig)
-    
+
     # Re-read the sweep block to get the keys and combinations for logging and folder naming
     raw_conf = OmegaConf.load(args.config)
     sweep_params = raw_conf.get("sweep", None)
@@ -26,7 +26,7 @@ def main() -> None:
         combinations = list(itertools.product(*values))
 
         for i, (config, combo) in enumerate(zip(configs, combinations)):
-            # TASK 5: Descriptive Run Names 
+            # TASK 5: Descriptive Run Names
             # We grab just the last part of the key (e.g., 'lr' instead of 'optimizer.lr') to keep folder names readable
             short_keys = [k.split(".")[-1] for k in keys]
             name_suffix = "_".join([f"{k}={v}" for k, v in zip(short_keys, combo)])
@@ -35,7 +35,7 @@ def main() -> None:
             # TASK 4: Print Active Parameters
             display_params = ", ".join([f"{k}={v}" for k, v in zip(keys, combo)])
             print(f"\n=== Starting Grid Search Run {i + 1} of {len(configs)} ({display_params}) ===")
-            
+
             trainer = Trainer(config)
             trainer.run()
     else:
