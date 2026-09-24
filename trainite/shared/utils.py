@@ -134,11 +134,12 @@ def load_config(path: str | Path, config_cls: type[T]) -> T:
     raw_conf = OmegaConf.load(path)
     return config_cls.model_validate(raw_conf)
 
-def flatten_sweep_config(d: dict, parent_key: str = '', sep: str = '.') -> dict:
+
+def flatten_sweep_config(d: dict, parent_key: str = "", sep: str = ".") -> dict:
     items = []
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
-        if isinstance(v, dict) or type(v).__name__ == 'DictConfig':
+        if isinstance(v, dict) or type(v).__name__ == "DictConfig":
             items.extend(flatten_sweep_config(v, new_key, sep=sep).items())
             continue
         items.append((new_key, v))
@@ -173,7 +174,7 @@ def load_grid_configs(path: str | Path, config_cls: type[T]) -> list[tuple[T, di
             # Safely handle explicit nulls in the YAML
             if OmegaConf.select(run_conf, key, default="__MISSING__") == "__MISSING__":
                 raise KeyError(f"Sweep key '{key}' does not exist in the base configuration.")
-                
+
             OmegaConf.update(run_conf, key, val)
             combo_dict[key] = val
 

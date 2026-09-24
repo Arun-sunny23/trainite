@@ -11,7 +11,7 @@ def main() -> None:
     args = parser.parse_args()
 
     configs = load_grid_configs(Path(args.config), ProjectConfig)
-    
+
     for i, (config, active_params) in enumerate(configs):
         if active_params:
             short_keys = [k.split(".")[-1] for k in active_params.keys()]
@@ -23,7 +23,7 @@ def main() -> None:
         else:
             if len(configs) > 1:
                 print(f"\n=== Starting Grid Search Run {i + 1} of {len(configs)} ===")
-            
+
         trainer = Trainer(config)
         trainer.run()
 
