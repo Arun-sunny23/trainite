@@ -134,60 +134,50 @@ def load_config(path: str | Path, config_cls: type[T]) -> T:
     raw_conf = OmegaConf.load(path)
     return config_cls.model_validate(raw_conf)
 
-
-def flatten_sweep_config(d: dict, parent_key: str = "", sep: str = ".") -> dict:
-    """
-    Flattens a nested dictionary into dot notation.
-    Example: {'optimizer': {'lr': [0.01, 0.001]}} -> {'optimizer.lr': [0.01, 0.001]}
-    """
+def flatten_sweep_config(d: dict, parent_key: str = '', sep: str = '.') -> dict:
     items = []
     for k, v in d.items():
         new_key = f"{parent_key}{sep}{k}" if parent_key else k
-        if isinstance(v, dict) or type(v).__name__ == "DictConfig":
+        if isinstance(v, dict) or type(v).__name__ == 'DictConfig':
             items.extend(flatten_sweep_config(v, new_key, sep=sep).items())
-        else:
-            items.append((new_key, v))
+            continue
+        items.append((new_key, v))
     return dict(items)
 
 
-def load_grid_configs(path: str | Path, config_cls: type[T]) -> list[T]:
-    """Loads a configuration file and generates a list of configurations for grid search."""
+def load_grid_configs(path: str | Path, config_cls: type[T]) -> list[tuple[T, dict[str, Any]]]:
     raw_conf = OmegaConf.load(path)
     sweep_params = raw_conf.get("sweep", None)
 
-    # If there is no sweep block, return the single config inside a list
+    # Delete sweep block once upfront
+    base_run_conf = raw_conf.copy()
+    if "sweep" in base_run_conf:
+        del base_run_conf["sweep"]
+
     if not sweep_params:
-        return [config_cls.model_validate(raw_conf)]
+        return [(config_cls.model_validate(base_run_conf), {})]
 
-    # Extract and format the grid parameters
     sweep_params_dict = OmegaConf.to_container(sweep_params, resolve=True)
-
-    # TASK 1: Flatten the nested dictionary into dot-notation keys
     flat_sweep_params = flatten_sweep_config(sweep_params_dict)
 
     keys = list(flat_sweep_params.keys())
     values = [v if isinstance(v, list) else [v] for v in flat_sweep_params.values()]
-
-    # Generate all combinations
     combinations = list(itertools.product(*values))
 
-    # Create and validate a distinct configuration for each combination
     configs = []
     for combo in combinations:
-        run_conf = raw_conf.copy()
-
-        # TASK 3: Remove the sweep block since it is no longer relevant for the individual run
-        if "sweep" in run_conf:
-            del run_conf["sweep"]
+        run_conf = base_run_conf.copy()
+        combo_dict = {}
 
         for key, val in zip(keys, combo):
-            # TASK 2: Validate the key exists in the base config to catch typos
-            if OmegaConf.select(run_conf, key) is None:
+            # Safely handle explicit nulls in the YAML
+            if OmegaConf.select(run_conf, key, default="__MISSING__") == "__MISSING__":
                 raise KeyError(f"Sweep key '{key}' does not exist in the base configuration.")
-
+                
             OmegaConf.update(run_conf, key, val)
+            combo_dict[key] = val
 
-        configs.append(config_cls.model_validate(run_conf))
+        configs.append((config_cls.model_validate(run_conf), combo_dict))
 
     return configs
 
